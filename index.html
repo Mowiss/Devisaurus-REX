@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEVISAURE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Comfortaa', cursive; 
+            background-color: #09090b; 
+            color: #d4d4d8;
+        }
+
+        /* --- RESET COMPLET --- */
+        input, select, textarea {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            border-radius: 0;
+            margin: 0;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0; }
+        
+        /* --- CHAMP DE SAISIE ORANGE --- */
+        .orange-pill {
+            background-color: #f97316 !important;
+            border: 2px solid #ea580c !important;
+            border-radius: 9999px !important;
+            padding: 0.375rem 0.75rem !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.3) !important;
+            transition: all 0.2s ease;
+        }
+        .orange-pill:focus-within {
+            border-color: #ffffff !important;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.2), inset 0 3px 6px rgba(0,0,0,0.3) !important;
+        }
+        .orange-pill-label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #431407 !important;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+        .orange-pill-input {
+            background: transparent !important;
+            border: none !important;
+            color: #000000 !important;
+            font-weight: 900 !important;
+            font-size: 0.9rem !important;
+            padding: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            width: 100%;
+            line-height: 1.2 !important;
+        }
+
+        /* --- AFFICHAGE RÉSULTAT --- */
+        .dark-pill-display {
+            background-color: #121214 !important;
+            border: 1px solid #27272a !important;
+            border-radius: 9999px !important;
+            padding: 0.375rem 0.75rem !important;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            min-width: 90px;
+        }
+        .dark-pill-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #71717a !important;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .dark-pill-value {
+            color: #f59e0b !important;
+            font-family: monospace;
+            font-size: 0.9rem !important;
+            font-weight: 800 !important;
+            line-height: 1.2 !important;
+        }
+
+        /* --- BOUTONS CLAVIER --- */
+        .kbd-btn {
+            background: linear-gradient(180deg, #3f3f46 0%, #27272a 100%);
+            border: 1px solid #52525b;
+            border-bottom-color: #18181b;
+            border-bottom-width: 4px;
+            border-radius: 8px;
+            color: #e4e4e7;
+            cursor: pointer;
+            font-weight: 700;
+            padding: 0;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            transition: all 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            user-select: none;
+        }
+        .kbd-btn:active {
+            border-bottom-width: 1px;
+            transform: translateY(3px);
+        }
+        .kbd-btn-amber {
+            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+            border-color: #f59e0b;
+            border-bottom-color: #78350f;
+            color: #fff;
+        }
+        .kbd-btn-red {
+            background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%);
+            border-color: #ef4444;
+            border-bottom-color: #450a0a;
+            color: #fff;
+        }
+        .kbd-icon { font-size: 1.25rem; line-height: 1; }
+
+        /* --- CARDS & ITEMS --- */
+        .item-card {
+            @apply bg-[#121214] border border-zinc-800 rounded-2xl p-2 mb-1 transition-all shadow-lg relative flex flex-col;
+        }
+        .item-card.dragging {
+            opacity: 0.3;
+            transform: scale(0.98);
+            border: 2px dashed #f97316;
+        }
+        .item-card.drag-over {
+            border-top: 4px solid #f97316;
+            margin-top: 10px;
+        }
+
+        /* Mode Suppression */
+        body.delete-mode-active {
+            cursor: crosshair;
+        }
+        body.delete-mode-active .item-card {
+            @apply hover:border-red-500 hover:bg-red-900/20 cursor-pointer;
+        }
+        body.delete-mode-active .item-card * {
+            pointer-events: none;
+        }
+
+        /* Sous-total automatique */
+        .subtotal-row {
+            @apply flex items-center gap-2 py-3 px-6 mb-4 mt-2 bg-zinc-900/50 border border-dashed border-zinc-800 rounded-2xl;
+        }
+
+        .type-indicator { @apply w-1.5 h-full absolute left-0 top-0 bottom-0 rounded-l-2xl; }
+        .type-indicator-article { @apply bg-zinc-500; }
+        .type-indicator-indice { @apply bg-white; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen p-4 pr-20 md:p-6 md:pr-24 flex flex-col items-center">
+
+    <div class="w-full max-w-7xl">
+        
+        <!-- Logo -->
+        <div class="mb-8 flex items-center gap-3">
+            <span class="text-4xl drop-shadow-lg">🦖</span>
+            <h1 class="text-3xl font-black text-white tracking-tighter uppercase drop-shadow-md">Devisaure</h1>
+        </div>
+
+        <!-- Items Container -->
+        <div id="items-container" class="space-y-1 min-h-[300px]"></div>
+        
+        <!-- Total Général -->
+        <div class="mt-8 bg-[#121214] border border-amber-900/30 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-center shadow-2xl relative overflow-hidden gap-6">
+            <div class="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent pointer-events-none"></div>
+            <h2 class="text-xl font-bold text-white uppercase tracking-wider z-10">Total Général du Chantier</h2>
+            
+            <div class="flex flex-col items-end gap-2 z-10 min-w-[300px]">
+                <div class="flex justify-between w-full text-zinc-400 font-mono text-lg text-right"><span>Total HT :</span><span id="total-ht">0.00 €</span></div>
+                <div class="flex justify-between w-full text-zinc-400 font-mono text-lg items-center border-b border-zinc-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span>TVA</span>
+                        <select onchange="updateTva(this.value)" class="bg-zinc-900 border border-zinc-700 text-amber-500 text-xs rounded px-1 py-0.5 outline-none cursor-pointer">
+                            <option value="0.20" selected>20%</option>
+                            <option value="0.10">10%</option>
+                            <option value="0.055">5.5%</option>
+                            <option value="0">0%</option>
+                        </select>
+                        <span>:</span>
+                    </div>
+                    <span id="montant-tva">0.00 €</span>
+                </div>
+                <div class="flex justify-between w-full font-mono text-3xl font-bold text-amber-500 pt-1"><span>TTC :</span><span id="total-ttc">0.00 €</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barre d'outils verticale à droite -->
+    <div class="fixed right-0 top-0 h-screen w-16 z-50 flex flex-col items-center justify-start pt-6 gap-3 bg-zinc-900 border-l border-zinc-800 shadow-2xl">
+        <button onclick="addItem('indice')" class="kbd-btn group relative">
+            <span class="kbd-icon">🏷️</span>
+            <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 shadow-xl">Ajouter Indice (Section)</span>
+        </button>
+        <button onclick="addItem('article')" class="kbd-btn group relative">
+            <span class="kbd-icon">📦</span>
+            <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 shadow-xl">Ajouter Article</span>
+        </button>
+        <button onclick="toggleDeleteMode()" id="delete-tool-btn" class="kbd-btn group relative">
+            <span class="kbd-icon text-red-500">❌</span>
+            <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-zinc-800 text-red-400 text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 shadow-xl">Mode Suppression</span>
+        </button>
+
+        <div class="w-10 h-px bg-zinc-800 my-1"></div>
+
+        <button onclick="exportData()" class="kbd-btn group relative">
+            <span class="kbd-icon text-blue-400">💾</span>
+            <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-zinc-800 text-blue-300 text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 shadow-xl">Sauvegarder JSON</span>
+        </button>
+        <button onclick="document.getElementById('import-file').click()" class="kbd-btn group relative">
+            <span class="kbd-icon text-emerald-400">📂</span>
+            <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-zinc-800 text-emerald-300 text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 shadow-xl">Charger JSON</span>
+        </button>
+        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+        
+        <div class="w-10 h-px bg-zinc-800 my-1"></div>
+
+        <button id="btn-generate" onclick="generateImage()" class="kbd-btn kbd-btn-amber group relative">
+            <span class="kbd-icon">🖨️</span>
+            <span id="btn-generate-text" class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-amber-500 shadow-xl">Générer Image</span>
+        </button>
+    </div>
+
+    <canvas id="export-canvas" class="hidden"></canvas>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-zinc-900 border border-zinc-700 text-amber-500 font-bold text-xs shadow-2xl opacity-0 transition-opacity pointer-events-none uppercase tracking-widest z-50">Action effectuée ✓</div>
+
+    <script>
+        let data = [];
+        let tvaRate = 0.20;
+        let activeInputId = null;
+        let activeSelectionStart = null;
+        let draggedIndex = null;
+        let isDeleteModeActive = false;
+
+        function saveFocus() {
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT') && activeEl.id) {
+                activeInputId = activeEl.id;
+                try { activeSelectionStart = activeEl.selectionStart; } catch(e) { activeSelectionStart = null; }
+            } else { activeInputId = null; }
+        }
+
+        function restoreFocus() {
+            if (activeInputId) {
+                const el = document.getElementById(activeInputId);
+                if (el) {
+                    el.focus();
+                    try { if (activeSelectionStart !== null && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) el.setSelectionRange(activeSelectionStart, activeSelectionStart); } catch(e) {}
+                }
+            }
+        }
+
+        function createId() { return 'id-' + Math.random().toString(36).substr(2, 9); }
+        
+        function updateTva(rate) { tvaRate = parseFloat(rate); calculateTotals(); }
+
+        function toggleDeleteMode() {
+            isDeleteModeActive = !isDeleteModeActive;
+            const btn = document.getElementById('delete-tool-btn');
+            if (isDeleteModeActive) {
+                btn.classList.add('kbd-btn-red');
+                document.body.classList.add('delete-mode-active');
+                showToast("Mode suppression activé");
+            } else {
+                btn.classList.remove('kbd-btn-red');
+                document.body.classList.remove('delete-mode-active');
+            }
+        }
+
+        function addItem(type) {
+            if (isDeleteModeActive) toggleDeleteMode();
+            
+            data.push({ 
+                id: createId(), 
+                type: type, 
+                name: '', 
+                description: '', 
+                image: null, 
+                showDetails: false, 
+                isCollapsed: false,
+                qte: 0, 
+                unit: 'ml', 
+                pu: 0
+            });
+            render();
+            setTimeout(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 50);
+        }
+
+        function removeItem(itemId) {
+            data = data.filter(i => i.id !== itemId);
+            if (isDeleteModeActive) toggleDeleteMode();
+            render();
+            showToast("Ligne supprimée");
+        }
+
+        function updateItemData(itemId, field, value) {
+            const item = data.find(i => i.id === itemId);
+            if (item) { item[field] = value; render(); }
+        }
+
+        function toggleItemDetails(itemId) {
+            if (isDeleteModeActive) return;
+            const item = data.find(i => i.id === itemId);
+            if (item) { item.showDetails = !item.showDetails; render(); }
+        }
+
+        function toggleIndice(itemId) {
+            if (isDeleteModeActive) return;
+            const item = data.find(i => i.id === itemId);
+            if (item && item.type === 'indice') {
+                item.isCollapsed = !item.isCollapsed;
+                render();
+            }
+        }
+
+        function handleItemImageUpload(itemId, event) {
+            const file = event.target.files[0];
+            if (!file || file.size > 2 * 1024 * 1024) return showToast("Image < 2MB requise");
+            const reader = new FileReader();
+            reader.onload = (e) => { const item = data.find(i => i.id === itemId); if (item) { item.image = e.target.result; render(); } };
+            reader.readAsDataURL(file);
+        }
+
+        function calculateItemTotal(item) {
+            if (item.type !== 'article') return 0;
+            const qte = parseFloat(item.qte) || 0; 
+            const pu = parseFloat(item.pu) || 0;
+            return qte * pu;
+        }
+
+        function calculateTotals() {
+            let totalHT = data.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+            let montantTVA = totalHT * tvaRate;
+            document.getElementById('total-ht').innerText = totalHT.toFixed(2) + ' €';
+            document.getElementById('montant-tva').innerText = montantTVA.toFixed(2) + ' €';
+            document.getElementById('total-ttc').innerText = (totalHT + montantTVA).toFixed(2) + ' €';
+        }
+
+        function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
+
+        function handleDragStart(e, index) {
+            if (isDeleteModeActive) return e.preventDefault();
+            draggedIndex = index;
+            e.dataTransfer.setData('text/plain', index);
+            e.currentTarget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('drag-over'));
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, targetIndex) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            if (sourceIndex !== targetIndex) {
+                const movedItem = data.splice(sourceIndex, 1)[0];
+                data.splice(targetIndex, 0, movedItem);
+                render();
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag]));
+        }
+
+        function renderSubtotalRow(value) {
+            const div = document.createElement('div');
+            div.className = 'subtotal-row';
+            div.innerHTML = `
+                <div class="flex-1 flex justify-between items-center px-4">
+                    <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Sous-Total Section HT</span>
+                    <span class="font-mono font-black text-amber-500 text-lg">${value.toFixed(2)} €</span>
+                </div>
+            `;
+            return div;
+        }
+
+        function renderItem(item, index, displayNumber) {
+            const total = calculateItemTotal(item);
+            const safeName = escapeHTML(item.name);
+            const safeDesc = escapeHTML(item.description);
+            const icon = item.type === 'indice' ? '🏷️' : '📦';
+
+            const dragHandleHtml = `
+                <div class="flex items-center gap-2 pl-3 pr-2 py-1 cursor-grab active:cursor-grabbing hover:scale-110 transition-transform origin-center select-none"
+                     onmousedown="!isDeleteModeActive && (this.closest('.item-card').draggable = true)"
+                     onmouseup="this.closest('.item-card').draggable = false"
+                     onmouseleave="this.closest('.item-card').draggable = false">
+                    <span class="text-zinc-600 font-mono text-[10px] w-6 text-center font-bold">${displayNumber}</span>
+                    <span class="text-2xl drop-shadow-md">${icon}</span>
+                </div>
+            `;
+
+            const actionsHtml = `
+                <div class="flex items-center gap-1 ml-2 pl-2 border-l border-zinc-800/50">
+                    ${item.type === 'indice' ? `
+                        <button onclick="toggleIndice('${item.id}')" class="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white transition-colors font-bold text-xs bg-zinc-800 rounded-md border border-zinc-700">
+                            ${item.isCollapsed ? '▶' : '▼'}
+                        </button>
+                    ` : ''}
+                    ${item.type === 'article' ? `<button onclick="toggleItemDetails('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-amber-500 transition-colors">📝</button>` : ''}
+                </div>
+            `;
+
+            let mainRow = '';
+            if (item.type === 'indice') {
+                mainRow = `
+                    <div class="flex items-center gap-2 w-full">
+                        ${dragHandleHtml}
+                        <div class="orange-pill flex-1 !bg-zinc-800 !border-zinc-700">
+                            <span class="orange-pill-label !text-zinc-500">Titre de section</span>
+                            <input id="name-${item.id}" type="text" placeholder="Désignation de la section..." value="${safeName}" oninput="updateItemData('${item.id}', 'name', this.value)" class="orange-pill-input !text-white !font-black !text-lg uppercase">
+                        </div>
+                        ${actionsHtml}
+                    </div>`;
+            } else {
+                mainRow = `
+                    <div class="flex items-center gap-2 w-full">
+                        ${dragHandleHtml}
+                        <div class="orange-pill flex-1 min-w-[200px]">
+                            <span class="orange-pill-label">Article</span>
+                            <input id="name-${item.id}" type="text" placeholder="Nom de l'article..." value="${safeName}" oninput="updateItemData('${item.id}', 'name', this.value)" class="orange-pill-input">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="orange-pill w-24"><span class="orange-pill-label text-center">Quantité</span><input id="qte-${item.id}" type="text" inputmode="decimal" value="${item.qte || ''}" oninput="updateItemData('${item.id}', 'qte', this.value)" class="orange-pill-input text-center font-mono"></div>
+                            <div class="orange-pill w-20"><span class="orange-pill-label text-center">Unité</span><select id="unit-${item.id}" onchange="updateItemData('${item.id}', 'unit', this.value)" class="orange-pill-input text-center uppercase cursor-pointer"><option value="ml" ${item.unit === 'ml' ? 'selected' : ''}>ML</option><option value="m2" ${item.unit === 'm2' ? 'selected' : ''}>M²</option><option value="m3" ${item.unit === 'm3' ? 'selected' : ''}>M³</option><option value="u" ${item.unit === 'u' ? 'selected' : ''}>UN</option><option value="ens" ${item.unit === 'ens' ? 'selected' : ''}>ENS</option></select></div>
+                            <div class="orange-pill w-28"><span class="orange-pill-label text-right">Prix U. HT</span><input id="pu-${item.id}" type="text" inputmode="decimal" value="${item.pu || ''}" oninput="updateItemData('${item.id}', 'pu', this.value)" class="orange-pill-input text-right font-mono"></div>
+                        </div>
+                        <div class="dark-pill-display w-36 bg-black border-amber-900/50 ml-auto"><span class="dark-pill-label text-amber-600">Total Net</span><span class="dark-pill-value text-amber-500">${total.toFixed(2)} €</span></div>
+                        ${actionsHtml}
+                    </div>`;
+            }
+
+            const detailsPanel = (item.type === 'article' && item.showDetails) ? `<div class="mt-2 mb-2 p-4 bg-[#0a0a0b] border border-zinc-800 rounded-2xl flex gap-4 w-full ml-12">
+                <div class="orange-box flex-1"><span class="orange-pill-label">Description détaillée</span><textarea id="desc-${item.id}" oninput="updateItemData('${item.id}', 'description', this.value)" class="orange-pill-input h-20 mt-1">${safeDesc}</textarea></div>
+                <div class="w-56">${item.image ? `<div class="relative w-full h-full bg-black border border-zinc-700 rounded-2xl overflow-hidden group/img"><img src="${item.image}" class="w-full h-full object-cover opacity-80" /><button onclick="updateItemData('${item.id}', 'image', null)" class="absolute inset-0 bg-black/70 opacity-0 group-hover/img:opacity-100 transition-opacity text-red-400 text-xs font-bold">Supprimer</button></div>` : `<label class="w-full h-full min-h-[5rem] border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-zinc-900 text-zinc-500 hover:text-zinc-300"><span class="text-xl mb-1">📸</span><input type="file" accept="image/*" class="hidden" onchange="handleItemImageUpload('${item.id}', event)"></label>`}</div>
+            </div>` : '';
+
+            const itemCard = document.createElement('div');
+            itemCard.className = 'item-card';
+            itemCard.onclick = () => {
+                if (isDeleteModeActive) {
+                    removeItem(item.id);
+                }
+            };
+            itemCard.setAttribute('ondragstart', `handleDragStart(event, ${index})`);
+            itemCard.setAttribute('ondragend', 'handleDragEnd(event)');
+            itemCard.setAttribute('ondragover', 'handleDragOver(event)');
+            itemCard.setAttribute('ondragleave', 'handleDragLeave(event)');
+            itemCard.setAttribute('ondrop', `handleDrop(event, ${index})`);
+
+            itemCard.innerHTML = `
+                <div class="type-indicator type-indicator-${item.type}"></div>
+                <div class="flex-1 w-full pl-1">
+                    ${mainRow}
+                    ${detailsPanel}
+                </div>
+            `;
+            return itemCard;
+        }
+
+        function render() {
+            saveFocus();
+            const container = document.getElementById('items-container');
+            container.innerHTML = '';
+            
+            if (data.length === 0) {
+                container.innerHTML = '<div class="h-full flex flex-col items-center justify-center text-zinc-600 opacity-50 py-20 border-2 border-dashed border-zinc-800 rounded-3xl"><span class="text-4xl mb-4">🦖</span><p class="font-bold">Devis vide. Ajoutez une section ou un article.</p></div>';
+            } else {
+                let currentIndice = 0;
+                let currentSubItem = 0;
+                let isSectionCollapsed = false;
+                let sectionTotal = 0;
+
+                data.forEach((item, index) => {
+                    if (item.type === 'indice') {
+                        if (currentIndice > 0 && !isSectionCollapsed) {
+                            container.appendChild(renderSubtotalRow(sectionTotal));
+                        }
+                        
+                        currentIndice++;
+                        currentSubItem = 0;
+                        sectionTotal = 0;
+                        isSectionCollapsed = item.isCollapsed;
+                        container.appendChild(renderItem(item, index, currentIndice.toString()));
+                    } else {
+                        currentSubItem++;
+                        sectionTotal += calculateItemTotal(item);
+                        if (!isSectionCollapsed) {
+                            const displayNumber = currentIndice > 0 ? `${currentIndice}.${currentSubItem}` : currentSubItem.toString();
+                            container.appendChild(renderItem(item, index, displayNumber));
+                        }
+                    }
+                    
+                    if (index === data.length - 1 && currentIndice > 0 && !isSectionCollapsed) {
+                        container.appendChild(renderSubtotalRow(sectionTotal));
+                    }
+                });
+            }
+            calculateTotals();
+            restoreFocus();
+        }
+
+        function exportData() {
+            if (isDeleteModeActive) toggleDeleteMode();
+            if(!data.length) return showToast("Rien à sauvegarder");
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); 
+            a.download = `Devisaure_${new Date().toISOString().slice(0,10)}.json`; 
+            a.click(); 
+            showToast("JSON exporté ✓");
+        }
+
+        function importData(e) {
+            if (isDeleteModeActive) toggleDeleteMode();
+            const f = e.target.files[0]; if (!f) return;
+            const reader = new FileReader();
+            reader.onload = (re) => { 
+                try { 
+                    const i = JSON.parse(re.target.result); 
+                    data = Array.isArray(i) ? i : data; 
+                    render(); 
+                    showToast("Chargé ✓"); 
+                } catch(e) { showToast("Fichier invalide"); } 
+                e.target.value = ''; 
+            };
+            reader.readAsText(f);
+        }
+
+        async function generateImage() {
+            if (isDeleteModeActive) toggleDeleteMode();
+            if(!data.length) return showToast("Rien à exporter");
+            const btn = document.getElementById('btn-generate-text'); btn.innerText = "Générat...";
+            try {
+                const canvas = document.getElementById('export-canvas'); const ctx = canvas.getContext('2d'); const pad = 50; const width = 1100;
+                
+                let tHeight = 250;
+                let currentIndice = 0;
+                data.forEach(i => {
+                    if (i.type === 'indice') {
+                        tHeight += 110;
+                    } else {
+                        tHeight += i.description ? 65 : 40;
+                    }
+                });
+                tHeight += 100;
+                
+                canvas.width = width; canvas.height = tHeight;
+                ctx.fillStyle = "#FFF"; ctx.fillRect(0,0,width,canvas.height);
+                ctx.fillStyle = "#000"; ctx.font = "bold 36px sans-serif"; ctx.fillText("DEVIS - ESTIMATIF DÉTAILLÉ", pad, 70);
+                ctx.fillStyle = "#666"; ctx.font = "14px sans-serif"; ctx.fillText("Édité le " + new Date().toLocaleString('fr-FR'), pad, 100);
+                ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pad,130); ctx.lineTo(width-pad,130); ctx.stroke();
+                
+                ctx.fillStyle = "#999"; ctx.font = "bold 12px sans-serif"; 
+                ctx.fillText("N°", pad, 155); ctx.fillText("DÉSIGNATION", pad+40, 155); 
+                ctx.textAlign = "right"; 
+                ctx.fillText("QTE", width-pad-280, 155); ctx.textAlign = "center"; 
+                ctx.fillText("UNITÉ", width-pad-220, 155); ctx.textAlign = "right"; 
+                ctx.fillText("PRIX U.", width-pad-120, 155); ctx.fillText("TOTAL HT", width-pad, 155); ctx.textAlign = "left";
+
+                let y = 190;
+                let cIdx = 0;
+                let cSub = 0;
+                let sTotal = 0;
+
+                data.forEach((item, index) => {
+                    if (item.type === 'indice') {
+                        if (cIdx > 0) {
+                            ctx.fillStyle = "#F3F4F6"; ctx.fillRect(pad, y-25, width-pad*2, 45);
+                            ctx.fillStyle = "#4B5563"; ctx.font = "bold 12px sans-serif"; ctx.fillText("SOUS-TOTAL SECTION HT", pad+15, y+5);
+                            ctx.textAlign = "right"; ctx.fillStyle = "#000"; ctx.font = "bold 16px monospace";
+                            ctx.fillText(sTotal.toFixed(2) + " €", width-pad-15, y+5); ctx.textAlign = "left";
+                            y += 60;
+                        }
+                        cIdx++; cSub = 0; sTotal = 0;
+                        ctx.fillStyle = "#27272a"; ctx.fillRect(pad, y-25, width-pad*2, 45);
+                        ctx.fillStyle = "#FFF"; ctx.font = "bold 18px sans-serif";
+                        ctx.fillText(cIdx + " - " + (item.name || "Titre de section").toUpperCase(), pad+15, y+5);
+                        y += 50;
+                    } else {
+                        cSub++;
+                        const itotal = calculateItemTotal(item);
+                        sTotal += itotal;
+                        const dispNum = cIdx > 0 ? `${cIdx}.${cSub}` : cSub.toString();
+                        
+                        if (index % 2 === 0) { ctx.fillStyle = "#F9F9F9"; ctx.fillRect(pad, y-20, width-pad*2, item.description ? 65 : 40); }
+                        
+                        ctx.fillStyle = "#999"; ctx.font = "bold 14px monospace"; ctx.fillText(dispNum, pad, y);
+                        ctx.fillStyle = "#111"; ctx.font = "bold 15px sans-serif"; ctx.fillText(item.name || "Sans nom", pad+40, y);
+                        ctx.fillStyle = "#555"; ctx.font = "14px monospace";
+                        ctx.textAlign = "right"; ctx.fillText(parseFloat(item.qte||0).toString(), width-pad-280, y);
+                        ctx.textAlign = "center"; ctx.fillText((item.unit||"").toUpperCase(), width-pad-220, y);
+                        ctx.textAlign = "right"; ctx.fillText(parseFloat(item.pu||0).toFixed(2) + " €", width-pad-120, y);
+                        ctx.fillStyle = "#000"; ctx.font = "bold 16px monospace"; ctx.fillText(itotal.toFixed(2)+" €", width-pad, y);
+                        ctx.textAlign = "left";
+                        if(item.description) { ctx.fillStyle="#888"; ctx.font="italic 13px sans-serif"; ctx.fillText("↳ "+item.description.substring(0,80), pad+40, y+25); }
+                        y += item.description ? 65 : 40;
+                    }
+                    
+                    if (index === data.length - 1 && cIdx > 0) {
+                        ctx.fillStyle = "#F3F4F6"; ctx.fillRect(pad, y-25, width-pad*2, 45);
+                        ctx.fillStyle = "#4B5563"; ctx.font = "bold 12px sans-serif"; ctx.fillText("SOUS-TOTAL SECTION HT", pad+15, y+5);
+                        ctx.textAlign = "right"; ctx.fillStyle = "#000"; ctx.font = "bold 16px monospace";
+                        ctx.fillText(sTotal.toFixed(2) + " €", width-pad-15, y+5); ctx.textAlign = "left";
+                        y += 60;
+                    }
+                });
+                
+                let totalHT = data.reduce((s,i)=>s+calculateItemTotal(i),0);
+                let tva = totalHT * tvaRate;
+                ctx.fillStyle = "#E5E7EB"; ctx.fillRect(pad, y, width-pad*2, 120);
+                ctx.textAlign = "right"; ctx.fillStyle = "#555"; ctx.font = "bold 18px monospace";
+                ctx.fillText(`Total HT : ${totalHT.toFixed(2)} €`, width-pad-20, y+35);
+                ctx.fillText(`TVA (${(tvaRate*100).toFixed(1)}%) : ${tva.toFixed(2)} €`, width-pad-20, y+60);
+                ctx.fillStyle = "#111"; ctx.font = "bold 28px sans-serif"; ctx.fillText(`TOTAL TTC : ${(totalHT+tva).toFixed(2)} €`, width-pad-20, y+100);
+                
+                const l = document.createElement('a'); l.download = `Devis_Export_${new Date().toISOString().slice(0,10)}.png`; l.href = canvas.toDataURL(); l.click();
+            } catch(e) { console.error(e); showToast("Erreur génération"); } finally { btn.innerText = "Image"; }
+        }
+
+        window.onload = () => render();
+    </script>
+</body>
+</html>
