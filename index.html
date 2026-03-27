@@ -165,16 +165,84 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #09090b; }
         ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+
+        /* --- CSS D'IMPRESSION (PDF MULTIPAGES) --- */
+        @media print {
+            body { 
+                background: white !important; 
+                color: black !important; 
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            #app-main, #toolbar, #toast, #subdetail-drawer { 
+                display: none !important; 
+            }
+            #print-area { 
+                display: block !important; 
+            }
+            @page { 
+                size: A4 portrait; 
+                margin: 12mm 15mm; 
+            }
+            .avoid-break { 
+                page-break-inside: avoid; 
+            }
+        }
+        #print-area { display: none; }
     </style>
 </head>
 <body class="min-h-screen p-4 pr-20 md:p-6 md:pr-24 flex flex-col items-center">
 
-    <div class="w-full max-w-7xl">
+    <!-- CONTENEUR DE L'APPLICATION (Masqué à l'impression) -->
+    <div id="app-main" class="w-full max-w-7xl">
         
-        <!-- Logo -->
-        <div class="mb-8 flex items-center gap-3">
-            <span class="text-4xl drop-shadow-lg">🦖</span>
-            <h1 class="text-3xl font-black text-white tracking-tighter uppercase drop-shadow-md">Devisaure</h1>
+        <!-- Cartouche d'En-tête Complet -->
+        <div class="mb-8 flex flex-col lg:flex-row items-start lg:items-center gap-6 justify-between bg-zinc-900/40 p-5 rounded-3xl border border-zinc-800 shadow-lg">
+            
+            <!-- Logo Simple Gauche -->
+            <div class="flex items-center gap-3 shrink-0 lg:w-1/4">
+                <span class="text-5xl drop-shadow-lg">🦖</span>
+                <h1 class="text-3xl font-black text-white tracking-tighter uppercase drop-shadow-md">Devisaure</h1>
+            </div>
+
+            <!-- Champs d'informations -->
+            <div class="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <input type="text" id="head-title" placeholder="Titre du document (ex: DEVIS ESTIMATIF)..." class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-2.5 text-white font-black text-lg placeholder-zinc-600 focus:border-amber-500 outline-none transition-colors" oninput="updateHeader('title', this.value)">
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-500 uppercase tracking-widest pointer-events-none">N° Devis</span>
+                    <input type="text" id="head-num" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-20 pr-3 py-2 text-zinc-300 focus:border-amber-500 outline-none text-sm font-mono" oninput="updateHeader('numDevis', this.value)">
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-500 uppercase tracking-widest pointer-events-none">Client</span>
+                    <input type="text" id="head-client" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-16 pr-3 py-2 text-zinc-300 focus:border-amber-500 outline-none text-sm font-bold" oninput="updateHeader('client', this.value)">
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-500 uppercase tracking-widest pointer-events-none">Chantier</span>
+                    <input type="text" id="head-chantier" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-20 pr-3 py-2 text-zinc-300 focus:border-amber-500 outline-none text-sm" oninput="updateHeader('chantier', this.value)">
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-500 uppercase tracking-widest pointer-events-none">Adresse</span>
+                    <input type="text" id="head-adresse" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-[72px] pr-3 py-2 text-zinc-300 focus:border-amber-500 outline-none text-sm" oninput="updateHeader('adresse', this.value)">
+                </div>
+            </div>
+
+            <!-- Upload Logo Entreprise -->
+            <div class="w-full lg:w-32 h-24 shrink-0 bg-zinc-950 border border-dashed border-zinc-700 hover:border-amber-500 rounded-xl flex items-center justify-center relative overflow-hidden group transition-colors">
+                <img id="company-logo-preview" src="" class="absolute inset-0 w-full h-full object-contain p-2 hidden grayscale">
+                <label class="cursor-pointer flex flex-col items-center justify-center w-full h-full text-zinc-500 group-hover:text-amber-500 transition-colors z-10 bg-black/40 group-hover:bg-black/80" id="company-logo-label">
+                    <span class="text-2xl mb-1">🏢</span>
+                    <span class="text-[8px] uppercase tracking-wider font-bold text-center leading-tight">Logo<br>Entreprise</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="handleCompanyLogo(event)">
+                </label>
+                <button onclick="removeCompanyLogo()" id="company-logo-remove" class="absolute top-1 right-1 text-white bg-red-600 hover:bg-red-500 rounded p-1 hidden z-20 text-[10px] leading-none transition-colors shadow" title="Supprimer le logo">✖</button>
+            </div>
+
         </div>
 
         <!-- Items Container -->
@@ -206,7 +274,7 @@
     </div>
 
     <!-- Barre d'outils verticale à droite -->
-    <div class="fixed right-0 top-0 h-screen w-16 z-50 flex flex-col items-center justify-start pt-6 gap-3 bg-zinc-900 border-l border-zinc-800 shadow-2xl">
+    <div id="toolbar" class="fixed right-0 top-0 h-screen w-16 z-50 flex flex-col items-center justify-start pt-6 gap-3 bg-zinc-900 border-l border-zinc-800 shadow-2xl">
         <button onclick="addItem('indice')" class="kbd-btn group relative">
             <span class="kbd-icon">🏷️</span>
             <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 shadow-xl">Ajouter Indice (Section)</span>
@@ -234,16 +302,17 @@
         
         <div class="w-10 h-px bg-zinc-800 my-1"></div>
 
-        <button id="btn-generate" onclick="generateImage()" class="kbd-btn kbd-btn-amber group relative">
+        <!-- Bouton générer PDF/Impression -->
+        <button id="btn-generate" onclick="generatePDF()" class="kbd-btn kbd-btn-amber group relative">
             <span class="kbd-icon">🖨️</span>
-            <span id="btn-generate-text" class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-amber-500 shadow-xl">Générer Image</span>
+            <span class="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap border border-amber-500 shadow-xl">Imprimer / PDF</span>
         </button>
     </div>
 
     <!-- Tiroir Sous-Détail -->
     <div id="subdetail-drawer" class="fixed top-0 left-0 h-full w-full xl:w-[85vw] bg-zinc-950 border-r border-zinc-800 shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-[100] transform -translate-x-full transition-transform duration-300 flex flex-col">
         <div class="flex justify-between items-center p-3 border-b border-zinc-800 bg-zinc-900 shrink-0">
-            <h2 class="text-white font-bold flex items-center gap-2 tracking-widest uppercase"><span class="text-xl">🧮</span> Sous-Détail de Prix</h2>
+            <h2 class="text-white font-bold flex items-center gap-2 tracking-widest uppercase"><span class="text-xl">🛒</span> Sous-Détail de Prix</h2>
             <button onclick="closeSubDetail()" class="text-zinc-400 hover:text-rose-500 font-bold px-4 py-2 bg-black rounded-lg flex items-center gap-2 transition-colors border border-zinc-800 shadow-inner">
                 FERMER ❌
             </button>
@@ -251,10 +320,12 @@
         <iframe id="subdetail-frame" class="flex-1 w-full border-none bg-[#000000]"></iframe>
     </div>
 
-    <canvas id="export-canvas" class="hidden"></canvas>
+    <!-- VUE D'IMPRESSION (NATIVE PDF) -->
+    <div id="print-area"></div>
+
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-zinc-900 border border-zinc-700 text-amber-500 font-bold text-xs shadow-2xl opacity-0 transition-opacity pointer-events-none uppercase tracking-widest z-50">Action effectuée ✓</div>
 
-    <!-- CODE SOURCE DETAILODOCUS EMBARQUÉ -->
+    <!-- CODE SOURCE DETAILODOCUS EMBARQUÉ (Avec fermeture de balise stricte) -->
     <template id="detailodocus-template">
         <!DOCTYPE html>
         <html lang="fr">
@@ -295,7 +366,6 @@
             </div>
 
             <div class="max-w-[1400px] mx-auto space-y-6">
-                <!-- Header Style Pro -->
                 <div class="bg-zinc-950 rounded-2xl shadow-2xl p-6 border border-zinc-900 flex flex-col xl:flex-row items-center justify-between gap-6">
                     <div>
                         <h1 class="text-2xl font-bold text-white flex items-center gap-3 tracking-wide">
@@ -317,7 +387,6 @@
                             <div class="flex flex-col"><span class="text-[9px] uppercase text-amber-600 font-bold mb-1 flex items-center gap-1"><i data-lucide="percent" class="w-3 h-3"></i> Coef.2 (Marge)</span><input type="number" step="0.01" id="global-coef2" value="1.1" class="w-20 px-2 py-1 rounded text-right font-bold text-amber-500 font-mono text-sm bg-black/50 border-amber-900/50" onchange="calculateAll()"></div>
                         </div>
 
-                        <!-- NOUVEAU BOUTON D'INTÉGRATION -->
                         <button onclick="sendToDevisaure()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 rounded-xl transition-colors flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] gap-2 border border-emerald-400">
                             <i data-lucide="check-circle" class="w-5 h-5"></i> APPLIQUER AU DEVIS
                         </button>
@@ -325,7 +394,6 @@
                 </div>
 
                 <div class="flex flex-col gap-6">
-                    <!-- Résumé Financier -->
                     <div class="group-card p-4">
                         <div class="flex flex-col lg:flex-row gap-6">
                             <div class="flex-grow flex flex-col justify-center">
@@ -344,7 +412,6 @@
                         </div>
                     </div>
 
-                    <!-- Panneau principal : Le tableau de sous-détail -->
                     <div class="group-card p-5 overflow-x-auto custom-scrollbar">
                         <table class="w-full text-xs text-left border-collapse whitespace-nowrap">
                             <thead>
@@ -385,7 +452,6 @@
                 </div>
             </div>
 
-            <!-- Tiroirs Latéraux (Logistique & Bibliothèque) -->
             <div id="rendement-drawer" class="fixed top-0 left-0 h-full w-80 bg-zinc-950 border-r border-zinc-800 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
                 <button onclick="toggleRendementDrawer()" class="absolute top-[30%] -translate-y-1/2 -right-10 w-10 h-28 bg-zinc-900 border-y border-r border-zinc-800 rounded-r-xl flex flex-col items-center justify-center cursor-pointer shadow-[4px_0_15px_rgba(0,0,0,0.5)] hover:bg-zinc-800 transition-colors group">
                     <i data-lucide="truck" class="w-5 h-5 mb-2 text-zinc-400 group-hover:text-amber-500 transition-colors"></i>
@@ -457,15 +523,27 @@
             </div>
 
             <script>
-                // LOGIQUE SPECIFIQUE DETAILODOCUS (simplifiée pour l'iframe)
                 let prixLibrary = []; let sousDetailItems = []; let savedCompositions = []; let costChartInstance = null; let isLibraryEditMode = false;
 
                 document.addEventListener('DOMContentLoaded', () => {
                     const libDataElement = document.getElementById('library-data');
                     if (libDataElement) prixLibrary = JSON.parse(libDataElement.textContent);
+                    
+                    if (window.__INITIAL_STATE__) {
+                        sousDetailItems = window.__INITIAL_STATE__.items || [];
+                        if(document.getElementById('global-rendement')) document.getElementById('global-rendement').value = window.__INITIAL_STATE__.rendement || 1;
+                        if(document.getElementById('global-quantite')) document.getElementById('global-quantite').value = window.__INITIAL_STATE__.quantite || 1;
+                        if(document.getElementById('global-unite')) document.getElementById('global-unite').value = window.__INITIAL_STATE__.unite || 'u';
+                        if(document.getElementById('global-coef1')) document.getElementById('global-coef1').value = window.__INITIAL_STATE__.coef1 || 1.16;
+                        if(document.getElementById('global-coef2')) document.getElementById('global-coef2').value = window.__INITIAL_STATE__.coef2 || 1.1;
+                        
+                        if (sousDetailItems.length > 0) {
+                            renderTables();
+                        }
+                    }
+
                     initChart(); runTransportCalc(); renderLibrary(); renderCompositionsList(); calculateAll(); lucide.createIcons();
                     
-                    // Récupérer le nom de l'article via l'URL (hash) s'il y a un contexte
                     if(window.location.hash) {
                         const name = decodeURIComponent(window.location.hash.substring(1));
                         document.getElementById('dynamic-title').textContent = "SOUS-DÉTAIL : " + name.toUpperCase();
@@ -733,7 +811,6 @@
                     updateChart(dpC['MO'], dpC['MAT'], dpC['FOU']);
                 }
 
-                // COMMUNICATION VERS DEVISAURE
                 window.sendToDevisaure = function() {
                     const puText = document.getElementById('summary-vente-unitaire').textContent;
                     const pu = parseFloat(puText) || 0;
@@ -749,7 +826,16 @@
                     const coef2 = parseFloat(document.getElementById('global-coef2').value) || 1;
                     summary += `\n> Frais Généraux : ${((coef1-1)*100).toFixed(1)}% | Marge : ${((coef2-1)*100).toFixed(1)}%`;
 
-                    window.parent.postMessage({ type: 'SAVE_SUBDETAIL', pu: pu, summary: summary }, '*');
+                    const currentState = {
+                        items: sousDetailItems,
+                        rendement: document.getElementById('global-rendement').value,
+                        quantite: document.getElementById('global-quantite').value,
+                        unite: document.getElementById('global-unite').value,
+                        coef1: document.getElementById('global-coef1').value,
+                        coef2: document.getElementById('global-coef2').value
+                    };
+
+                    window.parent.postMessage({ type: 'SAVE_SUBDETAIL', pu: pu, summary: summary, state: currentState }, '*');
                 };
             </script>
         </body>
@@ -758,12 +844,64 @@
 
     <script>
         let data = [];
+        let headerInfo = {
+            title: '',
+            chantier: '',
+            client: '',
+            adresse: '',
+            numDevis: '',
+            logo: null
+        };
         let tvaRate = 0.20;
         let activeInputId = null;
         let activeSelectionStart = null;
         let draggedIndex = null;
         let isDeleteModeActive = false;
-        let activeSubDetailItemId = null; // L'article en cours d'édition
+        let activeSubDetailItemId = null;
+
+        function updateHeader(field, value) {
+            headerInfo[field] = value;
+        }
+
+        function handleCompanyLogo(event) {
+            const file = event.target.files[0];
+            if (!file || file.size > 2 * 1024 * 1024) return showToast("Image < 2MB requise");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                headerInfo.logo = e.target.result;
+                updateLogoUI();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCompanyLogo() {
+            headerInfo.logo = null;
+            updateLogoUI();
+            document.getElementById('company-logo-label').querySelector('input').value = '';
+        }
+
+        function updateLogoUI() {
+            const img = document.getElementById('company-logo-preview');
+            const lbl = document.getElementById('company-logo-label');
+            const btn = document.getElementById('company-logo-remove');
+            if (headerInfo.logo) {
+                img.src = headerInfo.logo;
+                img.classList.remove('hidden');
+                lbl.classList.replace('bg-black/40', 'bg-transparent');
+                lbl.classList.replace('group-hover:bg-black/80', 'group-hover:bg-black/50');
+                lbl.querySelector('span:first-child').classList.add('opacity-0');
+                lbl.querySelector('span:nth-child(2)').classList.add('opacity-0');
+                btn.classList.remove('hidden');
+            } else {
+                img.src = '';
+                img.classList.add('hidden');
+                lbl.classList.replace('bg-transparent', 'bg-black/40');
+                lbl.classList.replace('group-hover:bg-black/50', 'group-hover:bg-black/80');
+                lbl.querySelector('span:first-child').classList.remove('opacity-0');
+                lbl.querySelector('span:nth-child(2)').classList.remove('opacity-0');
+                btn.classList.add('hidden');
+            }
+        }
 
         function saveFocus() {
             const activeEl = document.activeElement;
@@ -846,7 +984,6 @@
             }
         }
 
-        // --- GESTION DU SOUS DETAIL ---
         function openSubDetail(itemId) {
             if (isDeleteModeActive) return;
             activeInputId = null; 
@@ -854,13 +991,16 @@
             const item = data.find(i => i.id === itemId);
             const frame = document.getElementById('subdetail-frame');
             
-            // On récupère le code pur de Detailodocus depuis la balise Template
-            let tpl = document.getElementById('detailodocus-template').innerHTML;
-            
-            // On injecte le nom de l'article dans l'URL du iframe pour personnalisation
+            let tpl = document.getElementById('detailodocus-template') ? document.getElementById('detailodocus-template').innerHTML : '';
             const safeName = encodeURIComponent(item.name || "Article");
-            frame.srcdoc = tpl + `<script>window.location.hash = '${safeName}';<\/script>`;
             
+            let stateInjection = "";
+            if (item.subDetailState) {
+                const safeState = JSON.stringify(item.subDetailState).replace(/</g, '\\u003c');
+                stateInjection = `window.__INITIAL_STATE__ = ${safeState};`;
+            }
+            
+            frame.srcdoc = `<script>${stateInjection} window.location.hash = '${safeName}';<\/script>` + tpl;
             document.getElementById('subdetail-drawer').classList.remove('-translate-x-full');
         }
 
@@ -868,12 +1008,11 @@
             document.getElementById('subdetail-drawer').classList.add('-translate-x-full');
             setTimeout(() => {
                 document.getElementById('subdetail-frame').srcdoc = '';
-            }, 300); // Vidage après animation pour libérer la RAM
+            }, 300);
             activeSubDetailItemId = null;
             render();
         }
 
-        // Écouteur pour réceptionner le prix envoyé par l'Iframe
         window.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'SAVE_SUBDETAIL') {
                 if (activeSubDetailItemId) {
@@ -881,7 +1020,8 @@
                     if (item) {
                         item.pu = e.data.pu;
                         item.description = e.data.summary;
-                        item.showDetails = true; // On affiche la description pour prouver l'injection
+                        item.showDetails = true;
+                        item.subDetailState = e.data.state;
                         render();
                         showToast("Prix calculé et appliqué avec succès !");
                     }
@@ -982,7 +1122,6 @@
                 </div>
             `;
 
-            // Ajout du bouton 🧮 dans la barre d'action de droite
             const actionsHtml = `
                 <div class="flex items-center gap-1 ml-2 pl-2 border-l border-zinc-800/50">
                     ${item.type === 'indice' ? `
@@ -991,8 +1130,8 @@
                         </button>
                     ` : ''}
                     ${item.type === 'article' ? `
-                        <button onclick="openSubDetail('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-emerald-500 transition-colors" title="Calculer Sous-détail (Detailodocus)">🧮</button>
-                        <button onclick="toggleItemDetails('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-amber-500 transition-colors" title="Description">📝</button>
+                        <button onclick="openSubDetail('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 ${item.subDetailState ? 'text-emerald-400 font-bold shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'text-zinc-500'} hover:text-emerald-500 transition-colors" title="${item.subDetailState ? 'Éditer le Sous-détail' : 'Calculer Sous-détail (Detailodocus)'}">🛒</button>
+                        <button onclick="toggleItemDetails('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-amber-500 transition-colors" title="Description">📋</button>
                     ` : ''}
                 </div>
             `;
@@ -1026,8 +1165,11 @@
                     </div>`;
             }
 
-            const detailsPanel = (item.type === 'article' && item.showDetails) ? `<div class="mt-2 mb-2 p-4 bg-[#0a0a0b] border border-zinc-800 rounded-2xl flex gap-4 w-full ml-12">
-                <div class="orange-box flex-1"><span class="orange-pill-label">Description détaillée</span><textarea id="desc-${item.id}" oninput="updateItemData('${item.id}', 'description', this.value)" class="orange-pill-input h-32 mt-1 whitespace-pre-wrap leading-relaxed">${safeDesc}</textarea></div>
+            const detailsPanel = (item.type === 'article' && item.showDetails) ? `<div class="mt-2 mb-2 p-4 bg-zinc-950 border border-zinc-800 rounded-2xl flex gap-4 w-full ml-12">
+                <div class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-col shadow-inner">
+                    <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Description détaillée</span>
+                    <textarea id="desc-${item.id}" oninput="updateItemData('${item.id}', 'description', this.value)" class="w-full h-32 bg-transparent border-none text-zinc-200 text-sm outline-none resize-y leading-relaxed whitespace-pre-wrap" placeholder="Saisissez votre description détaillée ici...">${safeDesc}</textarea>
+                </div>
                 <div class="w-56">${item.image ? `<div class="relative w-full h-full bg-black border border-zinc-700 rounded-2xl overflow-hidden group/img"><img src="${item.image}" class="w-full h-full object-cover opacity-80" /><button onclick="updateItemData('${item.id}', 'image', null)" class="absolute inset-0 bg-black/70 opacity-0 group-hover/img:opacity-100 transition-opacity text-red-400 text-xs font-bold">Supprimer</button></div>` : `<label class="w-full h-full min-h-[5rem] border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-zinc-900 text-zinc-500 hover:text-zinc-300"><span class="text-xl mb-1">📸</span><input type="file" accept="image/*" class="hidden" onchange="handleItemImageUpload('${item.id}', event)"></label>`}</div>
             </div>` : '';
 
@@ -1099,8 +1241,15 @@
         function exportData() {
             if (isDeleteModeActive) toggleDeleteMode();
             if(!data.length) return showToast("Rien à sauvegarder");
+            
+            const exportObj = {
+                version: 2,
+                header: headerInfo,
+                items: data
+            };
+
             const a = document.createElement('a'); 
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); 
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' })); 
             a.download = `Devisaure_${new Date().toISOString().slice(0,10)}.json`; 
             a.click(); 
             showToast("JSON exporté ✓");
@@ -1113,7 +1262,21 @@
             reader.onload = (re) => { 
                 try { 
                     const i = JSON.parse(re.target.result); 
-                    data = Array.isArray(i) ? i : data; 
+                    
+                    if (i.version === 2) {
+                        data = i.items || [];
+                        headerInfo = i.header || { title: '', chantier: '', client: '', adresse: '', numDevis: '', logo: null };
+                        
+                        document.getElementById('head-title').value = headerInfo.title || '';
+                        document.getElementById('head-num').value = headerInfo.numDevis || '';
+                        document.getElementById('head-client').value = headerInfo.client || '';
+                        document.getElementById('head-chantier').value = headerInfo.chantier || '';
+                        document.getElementById('head-adresse').value = headerInfo.adresse || '';
+                        updateLogoUI();
+                    } else {
+                        data = Array.isArray(i) ? i : data; 
+                    }
+
                     render(); 
                     showToast("Chargé ✓"); 
                 } catch(e) { showToast("Fichier invalide"); } 
@@ -1122,105 +1285,153 @@
             reader.readAsText(f);
         }
 
-        async function generateImage() {
+        function generatePDF() {
             if (isDeleteModeActive) toggleDeleteMode();
-            if(!data.length) return showToast("Rien à exporter");
-            const btn = document.getElementById('btn-generate-text'); btn.innerText = "Générat...";
-            try {
-                const canvas = document.getElementById('export-canvas'); const ctx = canvas.getContext('2d'); const pad = 50; const width = 1100;
-                
-                let tHeight = 250;
-                let currentIndice = 0;
-                data.forEach(i => {
-                    if (i.type === 'indice') {
-                        tHeight += 110;
-                    } else {
-                        tHeight += i.description ? 120 : 40;
-                    }
-                });
-                tHeight += 100;
-                
-                canvas.width = width; canvas.height = tHeight;
-                ctx.fillStyle = "#FFF"; ctx.fillRect(0,0,width,canvas.height);
-                ctx.fillStyle = "#000"; ctx.font = "bold 36px sans-serif"; ctx.fillText("DEVIS - ESTIMATIF DÉTAILLÉ", pad, 70);
-                ctx.fillStyle = "#666"; ctx.font = "14px sans-serif"; ctx.fillText("Édité le " + new Date().toLocaleString('fr-FR'), pad, 100);
-                ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pad,130); ctx.lineTo(width-pad,130); ctx.stroke();
-                
-                ctx.fillStyle = "#999"; ctx.font = "bold 12px sans-serif"; 
-                ctx.fillText("N°", pad, 155); ctx.fillText("DÉSIGNATION", pad+40, 155); 
-                ctx.textAlign = "right"; 
-                ctx.fillText("QTE", width-pad-280, 155); ctx.textAlign = "center"; 
-                ctx.fillText("UNITÉ", width-pad-220, 155); ctx.textAlign = "right"; 
-                ctx.fillText("PRIX U.", width-pad-120, 155); ctx.fillText("TOTAL HT", width-pad, 155); ctx.textAlign = "left";
+            if (!data.length) return showToast("Rien à exporter");
 
-                let y = 190;
-                let cIdx = 0;
-                let cSub = 0;
-                let sTotal = 0;
+            let logoHtml = '';
+            if (headerInfo.logo) {
+                logoHtml = `<img src="${headerInfo.logo}" style="max-width: 150px; max-height: 80px; filter: grayscale(100%); object-fit: contain;">`;
+            }
 
-                data.forEach((item, index) => {
-                    if (item.type === 'indice') {
-                        if (cIdx > 0) {
-                            ctx.fillStyle = "#F3F4F6"; ctx.fillRect(pad, y-25, width-pad*2, 45);
-                            ctx.fillStyle = "#4B5563"; ctx.font = "bold 12px sans-serif"; ctx.fillText("SOUS-TOTAL SECTION HT", pad+15, y+5);
-                            ctx.textAlign = "right"; ctx.fillStyle = "#000"; ctx.font = "bold 16px monospace";
-                            ctx.fillText(sTotal.toFixed(2) + " €", width-pad-15, y+5); ctx.textAlign = "left";
-                            y += 60;
-                        }
-                        cIdx++; cSub = 0; sTotal = 0;
-                        ctx.fillStyle = "#27272a"; ctx.fillRect(pad, y-25, width-pad*2, 45);
-                        ctx.fillStyle = "#FFF"; ctx.font = "bold 18px sans-serif";
-                        ctx.fillText(cIdx + " - " + (item.name || "Titre de section").toUpperCase(), pad+15, y+5);
-                        y += 50;
-                    } else {
-                        cSub++;
-                        const itotal = calculateItemTotal(item);
-                        sTotal += itotal;
-                        const dispNum = cIdx > 0 ? `${cIdx}.${cSub}` : cSub.toString();
-                        
-                        // Calcul de hauteur du bloc pour accepter les retours à la ligne
-                        const descLines = item.description ? item.description.split('\n') : [];
-                        const rh = item.description ? 50 + (descLines.length * 15) : 40;
-
-                        if (index % 2 === 0) { ctx.fillStyle = "#F9F9F9"; ctx.fillRect(pad, y-20, width-pad*2, rh); }
-                        
-                        ctx.fillStyle = "#999"; ctx.font = "bold 14px monospace"; ctx.fillText(dispNum, pad, y);
-                        ctx.fillStyle = "#111"; ctx.font = "bold 15px sans-serif"; ctx.fillText(item.name || "Sans nom", pad+40, y);
-                        ctx.fillStyle = "#555"; ctx.font = "14px monospace";
-                        ctx.textAlign = "right"; ctx.fillText(parseFloat(item.qte||0).toString(), width-pad-280, y);
-                        ctx.textAlign = "center"; ctx.fillText((item.unit||"").toUpperCase(), width-pad-220, y);
-                        ctx.textAlign = "right"; ctx.fillText(parseFloat(item.pu||0).toFixed(2) + " €", width-pad-120, y);
-                        ctx.fillStyle = "#000"; ctx.font = "bold 16px monospace"; ctx.fillText(itotal.toFixed(2)+" €", width-pad, y);
-                        ctx.textAlign = "left";
-                        
-                        if(item.description) { 
-                            ctx.fillStyle="#888"; ctx.font="italic 13px sans-serif"; 
-                            descLines.forEach((line, i) => {
-                                ctx.fillText((i===0 ? "↳ " : "  ") + line, pad+40, y+25+(i*15));
-                            });
-                        }
-                        y += rh;
-                    }
+            let html = `
+                <div style="font-family: Arial, sans-serif; color: #111;">
+                    <!-- EN-TÊTE -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+                        <div>${logoHtml}</div>
+                        <div style="text-align: right;">
+                            <h1 style="font-size: 24px; margin: 0 0 10px 0; text-transform: uppercase;">${escapeHTML(headerInfo.title) || "DEVIS - ESTIMATIF DÉTAILLÉ"}</h1>
+                            ${headerInfo.numDevis ? `<p style="margin: 2px 0; font-size: 14px;"><strong>N° DEVIS :</strong> ${escapeHTML(headerInfo.numDevis)}</p>` : ''}
+                            ${headerInfo.chantier ? `<p style="margin: 2px 0; font-size: 14px;"><strong>CHANTIER :</strong> ${escapeHTML(headerInfo.chantier)}</p>` : ''}
+                            ${headerInfo.client ? `<p style="margin: 2px 0; font-size: 14px;"><strong>CLIENT :</strong> ${escapeHTML(headerInfo.client)}</p>` : ''}
+                            ${headerInfo.adresse ? `<p style="margin: 2px 0; font-size: 14px;"><strong>ADRESSE :</strong> ${escapeHTML(headerInfo.adresse)}</p>` : ''}
+                            <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Édité le ${new Date().toLocaleDateString('fr-FR')}</p>
+                        </div>
+                    </div>
                     
-                    if (index === data.length - 1 && cIdx > 0) {
-                        ctx.fillStyle = "#F3F4F6"; ctx.fillRect(pad, y-25, width-pad*2, 45);
-                        ctx.fillStyle = "#4B5563"; ctx.font = "bold 12px sans-serif"; ctx.fillText("SOUS-TOTAL SECTION HT", pad+15, y+5);
-                        ctx.textAlign = "right"; ctx.fillStyle = "#000"; ctx.font = "bold 16px monospace";
-                        ctx.fillText(sTotal.toFixed(2) + " €", width-pad-15, y+5); ctx.textAlign = "left";
-                        y += 60;
+                    <!-- TABLEAU -->
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #000; color: #555; text-align: left;">
+                                <th style="padding: 8px 4px; width: 5%;">N°</th>
+                                <th style="padding: 8px 4px; width: 45%;">DÉSIGNATION</th>
+                                <th style="padding: 8px 4px; width: 10%; text-align: center;">QTE</th>
+                                <th style="padding: 8px 4px; width: 10%; text-align: center;">UNITÉ</th>
+                                <th style="padding: 8px 4px; width: 15%; text-align: right;">PRIX U.</th>
+                                <th style="padding: 8px 4px; width: 15%; text-align: right;">TOTAL HT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            let cIdx = 0;
+            let cSub = 0;
+            let sTotal = 0;
+
+            data.forEach((item, index) => {
+                if (item.type === 'indice') {
+                    if (cIdx > 0) {
+                        html += `
+                            <tr class="avoid-break" style="background-color: #F3F4F6;">
+                                <td colspan="5" style="padding: 10px 8px; font-weight: bold; font-size: 11px; color: #4B5563; text-align: right;">SOUS-TOTAL SECTION HT</td>
+                                <td style="padding: 10px 8px; font-weight: bold; font-size: 13px; text-align: right;">${sTotal.toFixed(2)} €</td>
+                            </tr>
+                        `;
                     }
-                });
+                    cIdx++; cSub = 0; sTotal = 0;
+                    html += `
+                        <tr class="avoid-break">
+                            <td colspan="6" style="padding: 12px 8px; background-color: #27272a; color: #fff; font-weight: bold; font-size: 14px; text-transform: uppercase;">
+                                ${cIdx} - ${escapeHTML(item.name) || "TITRE DE SECTION"}
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    cSub++;
+                    const itotal = calculateItemTotal(item);
+                    sTotal += itotal;
+                    const dispNum = cIdx > 0 ? `${cIdx}.${cSub}` : cSub.toString();
+                    const bgStyle = index % 2 === 0 ? 'background-color: #F9F9F9;' : '';
+                    
+                    let descHtml = '';
+                    if (item.description) {
+                        const formattedDesc = escapeHTML(item.description).replace(/\n/g, '<br>');
+                        descHtml = `<div style="font-size: 11px; color: #666; margin-top: 4px; font-style: italic;">↳ ${formattedDesc}</div>`;
+                    }
+
+                    html += `
+                        <tr class="avoid-break" style="${bgStyle} border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px 4px; vertical-align: top; font-weight: bold; color: #888;">${dispNum}</td>
+                            <td style="padding: 8px 4px; vertical-align: top;">
+                                <div style="font-weight: bold; color: #111;">${escapeHTML(item.name) || "Sans nom"}</div>
+                                ${descHtml}
+                            </td>
+                            <td style="padding: 8px 4px; vertical-align: top; text-align: center; color: #555;">${parseFloat(item.qte||0)}</td>
+                            <td style="padding: 8px 4px; vertical-align: top; text-align: center; color: #555;">${escapeHTML(item.unit||"").toUpperCase()}</td>
+                            <td style="padding: 8px 4px; vertical-align: top; text-align: right; color: #555;">${parseFloat(item.pu||0).toFixed(2)} €</td>
+                            <td style="padding: 8px 4px; vertical-align: top; text-align: right; font-weight: bold; color: #111;">${itotal.toFixed(2)} €</td>
+                        </tr>
+                    `;
+                }
                 
-                let totalHT = data.reduce((s,i)=>s+calculateItemTotal(i),0);
-                let tva = totalHT * tvaRate;
-                ctx.fillStyle = "#E5E7EB"; ctx.fillRect(pad, y, width-pad*2, 120);
-                ctx.textAlign = "right"; ctx.fillStyle = "#555"; ctx.font = "bold 18px monospace";
-                ctx.fillText(`Total HT : ${totalHT.toFixed(2)} €`, width-pad-20, y+35);
-                ctx.fillText(`TVA (${(tvaRate*100).toFixed(1)}%) : ${tva.toFixed(2)} €`, width-pad-20, y+60);
-                ctx.fillStyle = "#111"; ctx.font = "bold 28px sans-serif"; ctx.fillText(`TOTAL TTC : ${(totalHT+tva).toFixed(2)} €`, width-pad-20, y+100);
-                
-                const l = document.createElement('a'); l.download = `Devis_Export_${new Date().toISOString().slice(0,10)}.png`; l.href = canvas.toDataURL(); l.click();
-            } catch(e) { console.error(e); showToast("Erreur génération"); } finally { btn.innerText = "Image"; }
+                if (index === data.length - 1 && cIdx > 0) {
+                    html += `
+                        <tr class="avoid-break" style="background-color: #F3F4F6;">
+                            <td colspan="5" style="padding: 10px 8px; font-weight: bold; font-size: 11px; color: #4B5563; text-align: right;">SOUS-TOTAL SECTION HT</td>
+                            <td style="padding: 10px 8px; font-weight: bold; font-size: 13px; text-align: right;">${sTotal.toFixed(2)} €</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            html += `</tbody></table>`;
+
+            let totalHT = data.reduce((s,i)=>s+calculateItemTotal(i),0);
+            let tva = totalHT * tvaRate;
+            let totalTTC = totalHT + tva;
+
+            html += `
+                    <!-- TOTAL ET TVA -->
+                    <div class="avoid-break" style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                        <div style="width: 300px; background-color: #E5E7EB; padding: 15px; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #555; font-weight: bold;">
+                                <span>Total HT :</span><span>${totalHT.toFixed(2)} €</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: #555; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 8px;">
+                                <span>TVA (${(tvaRate*100).toFixed(1)}%) :</span><span>${tva.toFixed(2)} €</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 20px; color: #111; font-weight: 900;">
+                                <span>TOTAL TTC :</span><span>${totalTTC.toFixed(2)} €</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- BLOC DE SIGNATURE -->
+                    <div class="avoid-break" style="margin-top: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: #fcfcfc;">
+                        <p style="margin: 0 0 15px 0; font-size: 12px; font-weight: bold; color: #444;">
+                            Offre valable 3 mois à compter de la date du présent devis.
+                        </p>
+                        <div style="display: flex; justify-content: space-between;">
+                            <div style="width: 60%;">
+                                <p style="margin: 0; font-size: 12px; color: #666; font-style: italic;">
+                                    Date et signature :<br>
+                                    (Précédé de la mention manuscrite "Lu et approuvé, Bon pour accord")
+                                </p>
+                            </div>
+                            <div style="width: 35%; height: 100px; border-bottom: 1px dotted #999;">
+                                <!-- Espace libre pour la signature -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const printArea = document.getElementById('print-area');
+            printArea.innerHTML = html;
+            
+            setTimeout(() => {
+                window.print();
+            }, 250);
         }
 
         window.onload = () => render();
