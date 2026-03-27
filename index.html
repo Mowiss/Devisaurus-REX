@@ -173,6 +173,8 @@
                 color: black !important; 
                 padding: 0 !important;
                 margin: 0 !important;
+                display: block !important;
+                width: 100% !important;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
@@ -183,10 +185,11 @@
             }
             #print-area { 
                 display: block !important; 
+                width: 100% !important;
             }
             @page { 
                 size: A4 portrait; 
-                margin: 12mm 15mm; 
+                margin: 10mm 12mm; 
             }
             .avoid-break { 
                 page-break-inside: avoid; 
@@ -938,6 +941,15 @@
             }
         }
 
+        function toggleOption(itemId) {
+            if (isDeleteModeActive) return;
+            const item = data.find(i => i.id === itemId);
+            if (item && item.type === 'article') {
+                item.isOption = !item.isOption;
+                render();
+            }
+        }
+
         function addItem(type) {
             if (isDeleteModeActive) toggleDeleteMode();
             
@@ -949,6 +961,7 @@
                 image: null, 
                 showDetails: false, 
                 isCollapsed: false,
+                isOption: false,
                 qte: 0, 
                 unit: 'u', 
                 pu: 0
@@ -1046,7 +1059,7 @@
         }
 
         function calculateTotals() {
-            let totalHT = data.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+            let totalHT = data.reduce((sum, item) => sum + (item.isOption ? 0 : calculateItemTotal(item)), 0);
             let montantTVA = totalHT * tvaRate;
             document.getElementById('total-ht').innerText = totalHT.toFixed(2) + ' €';
             document.getElementById('montant-tva').innerText = montantTVA.toFixed(2) + ' €';
@@ -1111,6 +1124,7 @@
             const safeName = escapeHTML(item.name);
             const safeDesc = escapeHTML(item.description);
             const icon = item.type === 'indice' ? '🏷️' : '📦';
+            const isOpt = item.isOption;
 
             const dragHandleHtml = `
                 <div class="flex items-center gap-2 pl-3 pr-2 py-1 cursor-grab active:cursor-grabbing hover:scale-110 transition-transform origin-center select-none"
@@ -1130,6 +1144,7 @@
                         </button>
                     ` : ''}
                     ${item.type === 'article' ? `
+                        <button onclick="toggleOption('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 ${isOpt ? 'text-rose-500 font-bold shadow-[0_0_10px_rgba(244,63,94,0.2)]' : 'text-zinc-500'} hover:text-rose-500 transition-colors" title="${isOpt ? 'Retirer Option' : 'Marquer comme Option (🚨)'}">🚨</button>
                         <button onclick="openSubDetail('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 ${item.subDetailState ? 'text-emerald-400 font-bold shadow-[0_0_10px_rgba(52,211,153,0.2)]' : 'text-zinc-500'} hover:text-emerald-500 transition-colors" title="${item.subDetailState ? 'Éditer le Sous-détail' : 'Calculer Sous-détail (Detailodocus)'}">🛒</button>
                         <button onclick="toggleItemDetails('${item.id}')" class="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-amber-500 transition-colors" title="Description">📋</button>
                     ` : ''}
@@ -1148,19 +1163,24 @@
                         ${actionsHtml}
                     </div>`;
             } else {
+                const nameInputClass = isOpt ? 'orange-pill-input !text-zinc-400 italic' : 'orange-pill-input';
+                const totalDisplay = isOpt ? `(${total.toFixed(2)} €)` : `${total.toFixed(2)} €`;
+                const totalColorClass = isOpt ? 'text-zinc-500' : 'text-amber-500';
+
                 mainRow = `
                     <div class="flex items-center gap-2 w-full">
                         ${dragHandleHtml}
-                        <div class="orange-pill flex-1 min-w-[200px]">
+                        <div class="orange-pill flex-1 min-w-[200px] relative">
+                            ${isOpt ? '<span class="absolute -top-2 right-2 bg-rose-950 border border-rose-800 text-rose-400 text-[8px] font-bold px-1.5 py-0.5 rounded shadow whitespace-nowrap">OPTION (Non incluse)</span>' : ''}
                             <span class="orange-pill-label">Article</span>
-                            <input id="name-${item.id}" type="text" placeholder="Nom de l'article..." value="${safeName}" oninput="updateItemData('${item.id}', 'name', this.value)" class="orange-pill-input">
+                            <input id="name-${item.id}" type="text" placeholder="Nom de l'article..." value="${safeName}" oninput="updateItemData('${item.id}', 'name', this.value)" class="${nameInputClass}">
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="orange-pill w-24"><span class="orange-pill-label text-center">Quantité</span><input id="qte-${item.id}" type="text" inputmode="decimal" value="${item.qte || ''}" oninput="updateItemData('${item.id}', 'qte', this.value)" class="orange-pill-input text-center font-mono"></div>
                             <div class="orange-pill w-20"><span class="orange-pill-label text-center">Unité</span><select id="unit-${item.id}" onchange="updateItemData('${item.id}', 'unit', this.value)" class="orange-pill-input text-center uppercase cursor-pointer"><option value="ml" ${item.unit === 'ml' ? 'selected' : ''}>ML</option><option value="m2" ${item.unit === 'm2' ? 'selected' : ''}>M²</option><option value="m3" ${item.unit === 'm3' ? 'selected' : ''}>M³</option><option value="u" ${item.unit === 'u' ? 'selected' : ''}>UN</option><option value="ens" ${item.unit === 'ens' ? 'selected' : ''}>ENS</option></select></div>
                             <div class="orange-pill w-28"><span class="orange-pill-label text-right">Prix U. HT</span><input id="pu-${item.id}" type="text" inputmode="decimal" value="${item.pu || ''}" oninput="updateItemData('${item.id}', 'pu', this.value)" class="orange-pill-input text-right font-mono"></div>
                         </div>
-                        <div class="dark-pill-display w-36 bg-black border-amber-900/50 ml-auto"><span class="dark-pill-label text-amber-600">Total Net</span><span class="dark-pill-value text-amber-500">${total.toFixed(2)} €</span></div>
+                        <div class="dark-pill-display w-36 bg-black border-amber-900/50 ml-auto"><span class="dark-pill-label text-amber-600">Total Net</span><span class="dark-pill-value ${totalColorClass}">${totalDisplay}</span></div>
                         ${actionsHtml}
                     </div>`;
             }
@@ -1222,7 +1242,9 @@
                         container.appendChild(renderItem(item, index, currentIndice.toString()));
                     } else {
                         currentSubItem++;
-                        sectionTotal += calculateItemTotal(item);
+                        if (!item.isOption) {
+                            sectionTotal += calculateItemTotal(item);
+                        }
                         if (!isSectionCollapsed) {
                             const displayNumber = currentIndice > 0 ? `${currentIndice}.${currentSubItem}` : currentSubItem.toString();
                             container.appendChild(renderItem(item, index, displayNumber));
@@ -1295,7 +1317,7 @@
             }
 
             let html = `
-                <div style="font-family: Arial, sans-serif; color: #111;">
+                <div style="font-family: Arial, sans-serif; color: #111; width: 100%;">
                     <!-- EN-TÊTE -->
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
                         <div>${logoHtml}</div>
@@ -1349,7 +1371,9 @@
                 } else {
                     cSub++;
                     const itotal = calculateItemTotal(item);
-                    sTotal += itotal;
+                    if (!item.isOption) {
+                        sTotal += itotal;
+                    }
                     const dispNum = cIdx > 0 ? `${cIdx}.${cSub}` : cSub.toString();
                     const bgStyle = index % 2 === 0 ? 'background-color: #F9F9F9;' : '';
                     
@@ -1359,17 +1383,28 @@
                         descHtml = `<div style="font-size: 11px; color: #666; margin-top: 4px; font-style: italic;">↳ ${formattedDesc}</div>`;
                     }
 
+                    let nameDisplay = escapeHTML(item.name) || "Sans nom";
+                    let totalDisplay = `${itotal.toFixed(2)} €`;
+                    let rowColor = `#111`;
+                    let optionHtml = ``;
+
+                    if (item.isOption) {
+                        rowColor = `#888`;
+                        totalDisplay = `(${itotal.toFixed(2)} €)`;
+                        optionHtml = `<br><span style="color: #f43f5e; font-size: 10px; font-style: italic; font-weight: normal;">(Option - non incluse dans le montant total)</span>`;
+                    }
+
                     html += `
                         <tr class="avoid-break" style="${bgStyle} border-bottom: 1px solid #eee;">
                             <td style="padding: 8px 4px; vertical-align: top; font-weight: bold; color: #888;">${dispNum}</td>
                             <td style="padding: 8px 4px; vertical-align: top;">
-                                <div style="font-weight: bold; color: #111;">${escapeHTML(item.name) || "Sans nom"}</div>
+                                <div style="font-weight: bold; color: ${rowColor}; font-style: ${item.isOption ? 'italic' : 'normal'};">${nameDisplay}${optionHtml}</div>
                                 ${descHtml}
                             </td>
                             <td style="padding: 8px 4px; vertical-align: top; text-align: center; color: #555;">${parseFloat(item.qte||0)}</td>
                             <td style="padding: 8px 4px; vertical-align: top; text-align: center; color: #555;">${escapeHTML(item.unit||"").toUpperCase()}</td>
                             <td style="padding: 8px 4px; vertical-align: top; text-align: right; color: #555;">${parseFloat(item.pu||0).toFixed(2)} €</td>
-                            <td style="padding: 8px 4px; vertical-align: top; text-align: right; font-weight: bold; color: #111;">${itotal.toFixed(2)} €</td>
+                            <td style="padding: 8px 4px; vertical-align: top; text-align: right; font-weight: bold; color: ${rowColor};">${totalDisplay}</td>
                         </tr>
                     `;
                 }
@@ -1386,7 +1421,7 @@
 
             html += `</tbody></table>`;
 
-            let totalHT = data.reduce((s,i)=>s+calculateItemTotal(i),0);
+            let totalHT = data.reduce((s,i) => s + (i.isOption ? 0 : calculateItemTotal(i)), 0);
             let tva = totalHT * tvaRate;
             let totalTTC = totalHT + tva;
 
